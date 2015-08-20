@@ -51,6 +51,18 @@ function rpn(s)
                   blk = deepcopy(block)
                   rpn(join(blk, " "))
                   end)
+        elseif op == "def"
+            nargs = 0
+            quot = pop!(stack)
+            name = pop!(stack)
+
+            operators[name] = function ()
+                quot()
+                nothing
+            end
+            opnums[name] = nargs
+        elseif !in_block && op[1] == ':'
+            push!(stack, op[2:length(op)])
         elseif !in_block
             f = get(operators, op, false)
             if f != false
