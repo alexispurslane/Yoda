@@ -58,7 +58,6 @@ function rpn(s)
 
             operators[name] = function ()
                 quot()
-                nothing
             end
             opnums[name] = nargs
         elseif !in_block && op[1] == ':'
