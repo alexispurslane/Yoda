@@ -1,0 +1,10 @@
+module Main where
+import Data.Text
+
+data YodaVal = Number Int
+             | Str String
+             | Symbol String
+             | Decimal Float
+
+parse :: String -> [YodaVal]
+parse str = map strToVal (split (==' ') str)
