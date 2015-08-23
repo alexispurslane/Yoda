@@ -1,4 +1,4 @@
-module Main where
+module Interpreter where
 
 import qualified Data.Text as T
 import Data.Char
