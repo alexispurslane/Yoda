@@ -52,9 +52,11 @@ parse str = map (strToVal . T.unpack) (T.splitOn (T.pack " ") (T.pack str))
 
 execute :: [YodaVal] -> String -> (YodaVal -> YodaVal -> YodaVal, Int) -> [YodaVal]
 execute s i f = case f of
-  (fn, n)   -> reverse (drop n $ reverse s) ++ [last (take n $ reverse s)
-                                                `fn`
-                                                second (reverse $ take n $ reverse s)]
+  (fn, n)   -> if length s >= n
+                  then reverse (drop n $ reverse s) ++ [last (take n $ reverse s)
+                                                        `fn`
+                                                        second (reverse $ take n $ reverse s)]
+                  else [Error "Data stack underflow."]
   where second = head . tail
 
 evalIdent :: Map.Map String (YodaVal -> YodaVal -> YodaVal, Int) -> YodaVal -> [YodaVal] -> [YodaVal]
@@ -62,7 +64,9 @@ evalIdent env e s = case e of
   v@(Number _)  -> s ++ [v]
   v@(Str _)     -> s ++ [v]
   v@(Decimal _) -> s ++ [v]
-  (Id v)        -> execute s v (env Map.! v)
+  (Id v)        -> if Map.member v env
+                      then execute s v (env Map.! v)
+                      else [Error "Undefined function or name."]
   otherwise     -> [Error "Unknown form or expression."]
 
 
