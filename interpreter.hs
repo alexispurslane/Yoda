@@ -12,7 +12,7 @@ data YodaVal = Number Int
              | Error String
              deriving (Show)
 
-defaultEnv :: Map.Map String (YodaVal -> YodaVal -> YodaVal, Int)
+defaultEnv :: Map.Map String ([YodaVal] -> YodaVal, Int)
 defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
                            ("-", (numericBinop (-), 2)),
                            ("*", (numericBinop (*), 2)),
@@ -20,8 +20,8 @@ defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
                            ("^", (numericBinop (^), 2)),
                            ("%", (numericBinop mod, 2))]
 
-numericBinop :: (Int -> Int -> Int) -> YodaVal -> YodaVal -> YodaVal
-numericBinop op x y = Number (unpackNumber x `op` unpackNumber y)
+numericBinop :: (Int -> Int -> Int) -> [YodaVal] -> YodaVal
+numericBinop op args = Number (unpackNumber (head args) `op` unpackNumber (head $ tail args))
 
 unpackNumber :: YodaVal -> Int
 unpackNumber x = case x of
@@ -50,16 +50,15 @@ strToVal str
 parse :: String -> [YodaVal]
 parse str = map (strToVal . T.unpack) (T.splitOn (T.pack " ") (T.pack str))
 
-execute :: [YodaVal] -> String -> (YodaVal -> YodaVal -> YodaVal, Int) -> [YodaVal]
+execute :: [YodaVal] -> String -> ([YodaVal] -> YodaVal, Int) -> [YodaVal]
 execute s i f = case f of
   (fn, n)   -> if length s >= n
-                  then reverse (drop n $ reverse s) ++ [last (take n $ reverse s)
-                                                        `fn`
-                                                        second (reverse $ take n $ reverse s)]
+                  then reverse (drop n $ reverse s) ++ [fn [last (take n $ reverse s),
+                                                            second (reverse $ take n $ reverse s)]]
                   else [Error "Data stack underflow."]
   where second = head . tail
 
-evalIdent :: Map.Map String (YodaVal -> YodaVal -> YodaVal, Int) -> YodaVal -> [YodaVal] -> [YodaVal]
+evalIdent :: Map.Map String ([YodaVal] -> YodaVal, Int) -> YodaVal -> [YodaVal] -> [YodaVal]
 evalIdent env e s = case e of
   v@(Number _)  -> s ++ [v]
   v@(Str _)     -> s ++ [v]
@@ -71,7 +70,7 @@ evalIdent env e s = case e of
   otherwise     -> [Error "Unknown form or expression."]
 
 
-run :: [YodaVal] -> [YodaVal] -> Map.Map String (YodaVal -> YodaVal -> YodaVal, Int) -> [YodaVal]
+run :: [YodaVal] -> [YodaVal] -> Map.Map String ([YodaVal] -> YodaVal, Int) -> [YodaVal]
 run [] s _ = s
 run exps stack env = let r = evalIdent env (head exps) stack
                      in case r of
