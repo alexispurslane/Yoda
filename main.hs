@@ -53,7 +53,6 @@ execute s i f = case f of
   (fn, n)   -> reverse (drop n $ reverse s) ++ [last (take n $ reverse s)
                                                 `fn`
                                                 second (reverse $ take n $ reverse s)]
-  otherwise -> [Error "Bad function."]
   where second = head . tail
 
 evalIdent :: Map.Map String (YodaVal -> YodaVal -> YodaVal, Int) -> YodaVal -> [YodaVal] -> [YodaVal]
@@ -72,4 +71,4 @@ run exps stack env = let r = evalIdent env (head exps) stack
                        v@[Error _] -> v
                        otherwise -> run (tail exps) r env
 
-eval str stack env = run (parse str) stack env
+eval str = run (parse str)
