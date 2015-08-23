@@ -53,8 +53,7 @@ parse str = map (strToVal . T.unpack) (T.splitOn (T.pack " ") (T.pack str))
 execute :: [YodaVal] -> String -> ([YodaVal] -> YodaVal, Int) -> [YodaVal]
 execute s i f = case f of
   (fn, n)   -> if length s >= n
-                  then reverse (drop n $ reverse s) ++ [fn [last (take n $ reverse s),
-                                                            second (reverse $ take n $ reverse s)]]
+                  then reverse (drop n $ reverse s) ++ [fn (reverse (take n (reverse s)))]
                   else [Error "Data stack underflow."]
   where second = head . tail
 
