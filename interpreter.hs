@@ -64,7 +64,8 @@ evalIdent env e s = case e of
   v@(Number _)  -> s ++ [v]
   v@(Str _)     -> s ++ [v]
   v@(Decimal _) -> s ++ [v]
-  (Id v)        -> if Map.member v env
+  Id "clear"    -> []
+  Id v          -> if Map.member v env
                       then execute s v (env Map.! v)
                       else [Error "Undefined function or name."]
   otherwise     -> [Error "Unknown form or expression."]
