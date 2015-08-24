@@ -3,6 +3,7 @@ module Interpreter where
 import Structures
 import Parser
 import qualified Data.Map as Map
+import Data.Either
 
 defaultEnv :: Map.Map String ([YodaVal] -> YodaVal, Int)
 defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
@@ -40,4 +41,4 @@ run exps stack env = let r = evalIdent env (head exps) stack
                        v@[Error _] -> v
                        otherwise -> run (tail exps) r env
 
-eval str = run (parse str)
+eval str = run (parseAll str)
