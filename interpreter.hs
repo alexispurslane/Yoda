@@ -18,7 +18,7 @@ numericBinop op args = Number (unpackNumber (head args) `op` unpackNumber (head 
 execute :: [YodaVal] -> String -> ([YodaVal] -> YodaVal, Int) -> [YodaVal]
 execute s i f = case f of
   (fn, n)   -> if length s >= n
-                  then reverse (drop n $ reverse s) ++ [fn $ reverse $ take n $ reverse s]
+                  then (reverse . take n $ reverse s) ++ [(fn . reverse) . take n $ reverse s]
                   else [Error "Data stack underflow."]
 
 evalIdent :: Map.Map String ([YodaVal] -> YodaVal, Int) -> YodaVal -> [YodaVal] -> [YodaVal]
