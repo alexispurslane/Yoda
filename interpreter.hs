@@ -28,9 +28,9 @@ evalIdent env e s = case e of
   v@(Str _)     -> s ++ [v]
   v@(Decimal _) -> s ++ [v]
   Id "clear"    -> []
-  Id v          -> if Map.member v env
-                      then execute s v (env Map.! v)
-                      else [Error "Undefined function or name."]
+  Id v          -> case Map.lookup v env of
+                     Just res -> execute s v res
+                     Nothing  -> [Error "Undefined function or name."]
   otherwise     -> [Error "Unknown form or expression."]
 
 
