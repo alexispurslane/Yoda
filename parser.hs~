@@ -9,20 +9,16 @@ import Data.Either
 import Structures
 
 symbol :: Parser Char
-symbol = oneOf "!#$%&|*+/:<=>?@^_~{}()[]\\'"
-
-sign :: Parser Char
-sign = char '-'
+symbol = oneOf "!#$%&|*+-/:<=>?@^_~{}()[]\\'"
 
 parseId :: Parser YodaVal
 parseId = do
   first <- letter <|> symbol
-  rest <- many (letter <|> digit <|> symbol <|> sign)
+  rest <- many (letter <|> digit <|> symbol)
   return $ Id (first:rest)
 
-parseNumber :: Parser YodaVal
 parseNumber = do
-  liftM readWrap $ many1 (sign <|> digit)
+  liftM readWrap $ many1 digit
   where readWrap = Number . read
 
 spaces :: Parser ()

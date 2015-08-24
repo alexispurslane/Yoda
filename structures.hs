@@ -3,7 +3,7 @@ module Structures where
 data YodaVal = Number Int
              | Str String
              | Id String
-             | Func [LispVal]
+             | Func [YodaVal]
              | Decimal Float
              | Error String
              deriving (Show)
