@@ -6,6 +6,8 @@ import Interpreter
 
 import System.IO
 
+import Data.List
+
 repl s = do
   putStr ") "
   hFlush stdout -- Make sure the prompt shows first
@@ -13,9 +15,9 @@ repl s = do
   case maybeLine of
    "exit" -> return ()
    line -> do let ans = eval line s defaultEnv
-              putStrLn $ "  " ++ case ans of
+              putStrLn $ "    " ++ case ans of
                 [Error e] -> "ERROR: " ++ e
-                v@_     -> show v
+                v@_     -> intercalate "\n    " (map show v)
               repl ans
 
 main = repl []

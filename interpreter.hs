@@ -2,6 +2,7 @@ module Interpreter where
 
 import Structures
 import Parser
+
 import qualified Data.Map as Map
 import Data.Either
 

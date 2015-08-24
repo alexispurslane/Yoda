@@ -1,18 +1,21 @@
 module Parser where
 
-import qualified Data.Text as T
 import Text.ParserCombinators.Parsec hiding (spaces)
+
 import Data.Char
-import Control.Monad
 import Data.Either
+import Data.List
+import qualified Data.Text as T
+
+import Control.Monad
 
 import Structures
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+/:<=>?@^_~{}()[]\\'"
 
-sign :: Parser Char
 sign = char '-'
+dot = char '.'
 
 parseId :: Parser YodaVal
 parseId = do
@@ -21,9 +24,11 @@ parseId = do
   return $ Id (first:rest)
 
 parseNumber :: Parser YodaVal
-parseNumber = do
-  liftM readWrap $ many1 (sign <|> digit)
-  where readWrap = Number . read
+parseNumber = liftM readWrap $ many1 (digit <|> sign <|> dot)
+  where readWrap sn = if '.' `elem` sn
+                         then Decimal (read sn)
+                         else Number (read sn)
+
 
 spaces :: Parser ()
 spaces = skipMany1 (oneOf "\n\r\f\t ")
@@ -43,4 +48,4 @@ parseExpr = parseId
 parseExprs :: Parser [YodaVal]
 parseExprs = sepBy parseExpr spaces
 
-parseAll str = (head $ rights [parse parseExprs "Yoda" str])
+parseAll str = head $ rights [parse parseExprs "Yoda" str]
