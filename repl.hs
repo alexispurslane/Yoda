@@ -1,4 +1,7 @@
 module Main where
+
+import Structures
+import Parser
 import Interpreter
 
 import System.IO
