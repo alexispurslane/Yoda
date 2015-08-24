@@ -11,8 +11,10 @@ import Control.Monad
 
 import Structures
 
+import Debug.Trace
+
 symbol :: Parser Char
-symbol = oneOf "!#$%&|*+/:<=>?@^_~{}()[]\\'"
+symbol = oneOf "!#$%&|*+/:<=>?@^_~{}()\\'"
 
 sign = char '-'
 dot = char '.'
@@ -40,10 +42,19 @@ parseString = do
   char '"'
   return $ Str x
 
+parseList :: Parser YodaVal
+parseList = liftM Func $ spaces >> (endBy (parseExpr) spaces)
+
 parseExpr :: Parser YodaVal
 parseExpr = parseId
             <|> parseNumber
             <|> parseString
+            <|> do
+              char '['
+              x <- try parseList
+              trace (show x) (char ']')
+
+              return x
 
 parseExprs :: Parser [YodaVal]
 parseExprs = sepBy parseExpr spaces

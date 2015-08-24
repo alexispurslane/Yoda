@@ -28,6 +28,7 @@ evalIdent env e s = case e of
   v@(Number _)  -> s ++ [v]
   v@(Str _)     -> s ++ [v]
   v@(Decimal _) -> s ++ [v]
+  v@(Func _)    -> s ++ [v]
   Id "clear"    -> []
   Id v          -> case Map.lookup v env of
                      Just res -> execute s v res
@@ -37,9 +38,11 @@ evalIdent env e s = case e of
 
 run :: [YodaVal] -> [YodaVal] -> Map.Map String ([YodaVal] -> YodaVal, Int) -> [YodaVal]
 run [] s _ = s
-run exps stack env = let r = evalIdent env (head exps) stack
-                     in case r of
-                       v@[Error _] -> v
-                       otherwise -> run (tail exps) r env
+run exps stack env = if length exps > 0
+                     then let r = evalIdent env (head exps) stack
+                          in case r of
+                          v@[Error _] -> v
+                          otherwise -> run (tail exps) r env
+                       else []
 
 eval str = run (parseAll str)
