@@ -13,7 +13,6 @@ repl s = do
   putStr ") "
   hFlush stdout -- Make sure the prompt shows first
   maybeLine <- getLine
-  print (Map.keys (snd s))
   case maybeLine of
    "exit" -> return ()
    line -> do let ans = uncurry (eval line) s
