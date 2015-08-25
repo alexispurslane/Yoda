@@ -27,3 +27,6 @@ unpackDecimal x = case x of
   Decimal v -> v
   Number v  -> fromIntegral v
   otherwise -> 0.0
+
+getBody :: YodaVal -> [YodaVal]
+getBody (Func b) = b

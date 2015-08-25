@@ -52,7 +52,7 @@ parseExpr = parseId
             <|> do
               char '['
               x <- try parseList
-              trace (show x) (char ']')
+              char ']'
 
               return x
 

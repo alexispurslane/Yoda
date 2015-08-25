@@ -30,6 +30,7 @@ evalIdent env e s = case e of
   v@(Decimal _) -> s ++ [v]
   v@(Func _)    -> s ++ [v]
   Id "clear"    -> []
+  Id "call"     -> run (getBody (last s)) (init s) env
   Id v          -> case Map.lookup v env of
                      Just res -> execute s v res
                      Nothing  -> [Error "Undefined function or name."]
