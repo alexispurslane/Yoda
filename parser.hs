@@ -43,7 +43,7 @@ parseString = do
   return $ Str x
 
 parseList :: Parser YodaVal
-parseList = liftM Func $ spaces >> (endBy (parseExpr) spaces)
+parseList = liftM Func $ spaces >> endBy parseExpr spaces
 
 parseExpr :: Parser YodaVal
 parseExpr = parseId

@@ -5,8 +5,10 @@ import Parser
 
 import qualified Data.Map as Map
 import Data.Either
+import Debug.Trace
+type Env = Map.Map String ([YodaVal] -> YodaVal, Int)
 
-defaultEnv :: Map.Map String ([YodaVal] -> YodaVal, Int)
+defaultEnv :: Env
 defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
                            ("-", (numericBinop (-), 2)),
                            ("*", (numericBinop (*), 2)),
@@ -23,27 +25,31 @@ execute s i f = case f of
                   then (reverse . drop n $ reverse s) ++ [(fn . reverse) . take n $ reverse s]
                   else [Error "Data stack underflow."]
 
-evalIdent :: Map.Map String ([YodaVal] -> YodaVal, Int) -> YodaVal -> [YodaVal] -> [YodaVal]
+languageFunc :: YodaVal -> Env -> [YodaVal] -> YodaVal
+languageFunc f e a = last (fst (run (getBody f) a e))
+
+evalIdent :: Env -> YodaVal -> [YodaVal] -> ([YodaVal], Env)
 evalIdent env e s = case e of
-  v@(Number _)  -> s ++ [v]
-  v@(Str _)     -> s ++ [v]
-  v@(Decimal _) -> s ++ [v]
-  v@(Func _)    -> s ++ [v]
-  Id "clear"    -> []
+  v@(Number _)  -> (s ++ [v], env)
+  v@(Str _)     -> (s ++ [v], env)
+  v@(Decimal _) -> (s ++ [v], env)
+  v@(Func _)    -> (s ++ [v], env)
+  Id "clear"    -> ([], Map.empty)
+  Id "def"      -> let [i, q, n] = take 3 (reverse s)
+                   in (reverse . drop 3 $ reverse s,
+                       Map.insert (unpackString n) (languageFunc q env, unpackNumber i) env)
   Id "call"     -> run (getBody (last s)) (init s) env
-  Id v          -> case Map.lookup v env of
+  Id v          -> (case Map.lookup v env of
                      Just res -> execute s v res
-                     Nothing  -> [Error "Undefined function or name."]
-  otherwise     -> [Error "Unknown form or expression."]
+                     Nothing  -> [Error "Undefined function or name."], env)
+  otherwise     -> ([Error "Unknown form or expression."], env)
 
 
-run :: [YodaVal] -> [YodaVal] -> Map.Map String ([YodaVal] -> YodaVal, Int) -> [YodaVal]
-run [] s _ = s
-run exps stack env = if not (null exps)
-                     then let r = evalIdent env (head exps) stack
-                          in case r of
-                          v@[Error _] -> v
-                          otherwise -> run (tail exps) r env
-                       else []
+run :: [YodaVal] -> [YodaVal] -> Env -> ([YodaVal], Env)
+run [] s e = (s, e)
+run exps stack env = let r = evalIdent env (head exps) stack
+                     in case r of
+                       ([Error v], e) -> ([Error v], e)
+                       (s, e) -> run (tail exps) s e
 
 eval str = run (parseAll str)
