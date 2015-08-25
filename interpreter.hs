@@ -39,7 +39,7 @@ evalIdent env e s = case e of
 
 run :: [YodaVal] -> [YodaVal] -> Map.Map String ([YodaVal] -> YodaVal, Int) -> [YodaVal]
 run [] s _ = s
-run exps stack env = if length exps > 0
+run exps stack env = if not (null exps)
                      then let r = evalIdent env (head exps) stack
                           in case r of
                           v@[Error _] -> v
