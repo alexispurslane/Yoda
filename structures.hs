@@ -1,12 +1,17 @@
 module Structures where
 
+import Data.String.Utils
+import Data.List
+
 data YodaVal = Number Int
              | Id String
              | Func [YodaVal]
              | Str String
              | Decimal Float
              | Error String
-             deriving (Show)
+
+instance Show YodaVal where
+  show = showVal
 
 unpackNumber :: YodaVal -> Int
 unpackNumber x = case x of
@@ -30,3 +35,11 @@ unpackDecimal x = case x of
 
 getBody :: YodaVal -> [YodaVal]
 getBody (Func b) = b
+
+showVal :: YodaVal -> String
+showVal (Number v) = replace "-" "_" (show v)
+showVal (Id v) = v
+showVal (Func b) = "[ " ++ intercalate " " (map showVal b) ++ " ]"
+showVal (Str v) = show v
+showVal (Decimal v) = replace "-" "_" (show v)
+showVal (Error e) = "ERROR: " ++ e
