@@ -14,22 +14,23 @@ import Structures
 import Debug.Trace
 
 symbol :: Parser Char
-symbol = oneOf "!#$%&|*+/:<=>?@^_~{}()\\'"
-
-sign = char '-'
-dot = char '.'
+symbol = oneOf "!#$%&|*+/:<=>?@^_~{}()\\'-"
 
 parseId :: Parser YodaVal
 parseId = do
   first <- letter <|> symbol
-  rest <- many (letter <|> digit <|> symbol <|> sign)
+  rest <- many (letter <|> digit <|> symbol)
   return $ Id (first:rest)
 
 parseNumber :: Parser YodaVal
-parseNumber = liftM readWrap $ many1 (digit <|> sign <|> dot)
+parseNumber = do
+  x <- try (count 2 (digit <|> dot <|> sign)) <|> (many1 (digit <|> dot))
+  return . readWrap $ x
   where readWrap sn = if '.' `elem` sn
                          then Decimal (read sn)
                          else Number (read sn)
+        sign = char '-'
+        dot = char '.'
 
 
 spaces :: Parser ()
@@ -46,8 +47,8 @@ parseList :: Parser YodaVal
 parseList = liftM Func $ spaces >> endBy parseExpr spaces
 
 parseExpr :: Parser YodaVal
-parseExpr = parseId
-            <|> parseNumber
+parseExpr = parseNumber
+            <|> parseId
             <|> parseString
             <|> do
               char '['
