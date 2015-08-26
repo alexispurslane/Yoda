@@ -3,6 +3,7 @@ module Parser where
 import Text.ParserCombinators.Parsec hiding (spaces)
 
 import Data.Char
+import Data.String.Utils
 import Data.Either
 import Data.List
 import qualified Data.Text as T
@@ -24,12 +25,12 @@ parseId = do
 
 parseNumber :: Parser YodaVal
 parseNumber = do
-  x <- try (count 2 (digit <|> dot <|> sign)) <|> (many1 (digit <|> dot))
+  x <- try (many1 (digit <|> dot <|> sign)) <|> (many1 (digit <|> dot))
   return . readWrap $ x
   where readWrap sn = if '.' `elem` sn
-                         then Decimal (read sn)
-                         else Number (read sn)
-        sign = char '-'
+                         then Decimal (read (replace "_" "-" sn))
+                         else Number (read (replace "_" "-" sn))
+        sign = char '_'
         dot = char '.'
 
 
