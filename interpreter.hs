@@ -1,3 +1,15 @@
+{-|
+Module      : Interpreter
+Description : Evaluates AST created from Parser module functions.
+Copyright   : (c) Christopher Dumas, 2015
+License     : GPL-3
+Maintainer  : christopherdumas@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module contains all of the necissary functions and constants for evaluating the AST created by the
+Parser.parseAll function.
+-}
 module Interpreter where
 
 import Structures
@@ -6,8 +18,11 @@ import Parser
 import qualified Data.Map as Map
 import Data.Either
 import Debug.Trace
+
+-- | A type alias for a Haskell Map. The keys are strings, the value is a tuple containing the function, and its arity.
 type Env = Map.Map String ([YodaVal] -> YodaVal, Int)
 
+-- | Yoda built-in functions, or standard library.
 defaultEnv :: Env
 defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
                            ("-", (numericBinop (-), 2)),
@@ -16,20 +31,24 @@ defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
                            ("^", (numericBinop (^), 2)),
                            ("%", (numericBinop mod, 2))]
 
+-- | Converts a Haskell function to a Yoda-executable function.
 numericBinop :: (Int -> Int -> Int) -> [YodaVal] -> YodaVal
 numericBinop op args = Number (unpackNumber (head args) `op` unpackNumber (head $ tail args))
 
+-- | Executes a function
 execute :: [YodaVal] -> String -> ([YodaVal] -> YodaVal, Int) -> [YodaVal]
 execute s i f = case f of
   (fn, n)   -> if length s >= n
                   then (reverse . drop n $ reverse s) ++ [(fn . reverse) . take n $ reverse s]
                   else [Error "Data stack underflow."]
 
+-- | Converts a Yoda lambda to a function that can be named and added to the 'defaultEnv'.
 languageFunc :: YodaVal -> Env -> [YodaVal] -> YodaVal
 languageFunc f e a = last (fst (run (getBody f) a e))
 
-evalIdent :: Env -> YodaVal -> [YodaVal] -> ([YodaVal], Env)
-evalIdent env e s = case e of
+-- | Evaluates a single Yoda expression, with the environment and the stack.
+evalExpr :: Env -> YodaVal -> [YodaVal] -> ([YodaVal], Env)
+evalExpr env e s = case e of
   v@(Number _)  -> (s ++ [v], env)
   v@(Str _)     -> (s ++ [v], env)
   v@(Decimal _) -> (s ++ [v], env)
@@ -44,12 +63,13 @@ evalIdent env e s = case e of
                      Nothing  -> [Error "Undefined function or name."], env)
   otherwise     -> ([Error "Unknown form or expression."], env)
 
-
+-- | Evaluates multiple Yoda expressions.
 run :: [YodaVal] -> [YodaVal] -> Env -> ([YodaVal], Env)
 run [] s e = (s, e)
-run exps stack env = let r = evalIdent env (head exps) stack
+run exps stack env = let r = evalExpr env (head exps) stack
                      in case r of
                        ([Error v], e) -> ([Error v], e)
                        (s, e) -> run (tail exps) s e
 
+-- | Evalutates a string.
 eval str = run (parseAll str)
