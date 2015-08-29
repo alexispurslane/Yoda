@@ -30,7 +30,14 @@ defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
                            ("/", (numericBinop div, 2)),
                            ("^", (numericBinop (^), 2)),
                            ("%", (numericBinop mod, 2)),
+                           ("<", (numericBoolBinop (<), 2)),
+                           (">", (numericBoolBinop (>), 2)),
+                           ("<=", (numericBoolBinop (<=), 2)),
+                           (">=", (numericBoolBinop (>=), 2)),
                            ("=", (yvalEqual, 2)),
+                           ("!=", (yvalNot . return . yvalEqual, 2)),
+                           ("&&", (\[x, y] -> Boolean $ unpackBoolean x && unpackBoolean y, 2)),
+                           ("||", (\[x, y] -> Boolean $ unpackBoolean x || unpackBoolean y, 2)),
                            ("not", (yvalNot, 1))]
 
 -- | The equality function for Yoda.
@@ -49,6 +56,10 @@ yvalNot [x] = Boolean . not $ unpackBoolean x
 -- | Converts a Haskell function to a Yoda-executable function.
 numericBinop :: (Int -> Int -> Int) -> [YodaVal] -> YodaVal
 numericBinop op args = Number (unpackNumber (head args) `op` unpackNumber (head $ tail args))
+
+-- | Converts a Haskell function to a Yoda-executable function.
+numericBoolBinop :: (Int -> Int -> Bool) -> [YodaVal] -> YodaVal
+numericBoolBinop op args = Boolean (unpackNumber (head args) `op` unpackNumber (head $ tail args))
 
 -- | Executes a function
 execute :: [YodaVal] -> String -> ([YodaVal] -> YodaVal, Int) -> [YodaVal]
@@ -79,6 +90,11 @@ evalExpr env e s = case e of
                    in (reverse . drop 3 $ reverse s,
                        Map.insert (unpackString n) (languageFunc q env, unpackNumber i) env)
   Id "call"     -> run (unpackFunc (last s)) (init s) env
+  Id "if"       -> let [o, t, p] = take 3 (reverse s)
+                   in let pr = unpackBoolean . head . fst $ run (unpackFunc p) (reverse . drop 3 $ reverse s) env
+                      in if traceShow pr pr
+                         then run (unpackFunc t) (reverse . drop 3 $ reverse s) env 
+                         else run (unpackFunc o) (reverse . drop 3 $ reverse s) env 
   Id v          -> (case Map.lookup v env of
                      Just res -> execute s v res
                      Nothing  -> [Error $ "Undefined function " ++ v], env)
