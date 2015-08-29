@@ -54,7 +54,7 @@ execute s i f = case f of
 
 -- | Converts a Yoda lambda to a function that can be named and added to the 'defaultEnv'.
 languageFunc :: YodaVal -> Env -> [YodaVal] -> YodaVal
-languageFunc f e a = last (fst (run (getBody f) a e))
+languageFunc f e a = last (fst (run (unpackFunc f) a e))
 
 -- | Evaluates a single Yoda expression, with the environment and the stack.
 evalExpr :: Env -> YodaVal -> [YodaVal] -> ([YodaVal], Env)
@@ -68,7 +68,7 @@ evalExpr env e s = case e of
   Id "def"      -> let [i, q, n] = take 3 (reverse s)
                    in (reverse . drop 3 $ reverse s,
                        Map.insert (unpackString n) (languageFunc q env, unpackNumber i) env)
-  Id "call"     -> run (getBody (last s)) (init s) env
+  Id "call"     -> run (unpackFunc (last s)) (init s) env
   Id v          -> (case Map.lookup v env of
                      Just res -> execute s v res
                      Nothing  -> [Error "Undefined function or name."], env)

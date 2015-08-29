@@ -74,14 +74,11 @@ unpackBoolean  x = case x of
   Decimal _   -> True
   otherwise   -> True
 
+-- | Unpacks the body of a function, or converts a literal into a list of expressions.
 unpackFunc :: YodaVal -> [YodaVal]
 unpackFunc x = case x of
   Func v    -> v
   otherwise -> [x]
-
--- | Returns a function body, otherwise throws an error
-getBody :: YodaVal -> [YodaVal]
-getBody (Func b) = b
 
 -- | Formats a Yoda value.
 showVal :: YodaVal -> String
