@@ -28,18 +28,23 @@ data YodaVal = Number Int
                -- ^ This represents a decimal in Yoda.
              | Error String
                -- ^ An error type, for error correction in Yoda.
+             | Boolean Bool
+               -- ^ A boolean type.
 
 -- | Implements a show function for YodaVal
 instance Show YodaVal where
   show = showVal
 
--- | /unpackNumber x/ returns the unwrapped Number x, or 0.
+-- | /unpackNumber x/ returns the unwrapped Number x, reads a string, or 1 for true, and 0 for false.
 unpackNumber :: YodaVal -> Int
 unpackNumber x = case x of
-  Number v  -> v
+  Number v      -> v
+  Boolean True  -> 1
+  Boolean False -> 0
+  Str v         -> read v
   otherwise -> 0
 
--- | /unpackString x/ changes x into a string if it is not, using show. Otherwise if it is a Str, Error, or Id, returns the value.
+-- | /unpackString x/ changes x into a string if it is not, using show. Otherwise if it is a Str, Error, Boolean, or Id, returns the value.
 unpackString :: YodaVal -> String
 unpackString x = case x of
   Str v     -> v
@@ -47,14 +52,32 @@ unpackString x = case x of
   Number v  -> show v
   Decimal v -> show v
   Id v      -> v
+  Boolean v -> show v
   otherwise -> ""
 
--- | /unpackDecimal x/ makes a Number into a Float, or just returns the unwrapped value of a Decimal. If x is neither a Decimal or a Number, it returns 0.0.
+-- | /unpackDecimal x/ makes a Number into a Float, or just returns the unwrapped value of a Decimal. If x is a Boolean, it returns 1.0 for true, and 0.0 for false. If x is neither a Decimal, a Number or a Boolean, it returns 0.0.
 unpackDecimal :: YodaVal -> Float
 unpackDecimal x = case x of
-  Decimal v -> v
-  Number v  -> fromIntegral v
+  Decimal v     -> v
+  Number v      -> fromIntegral v
+  Boolean True  -> 1.0
+  Boolean False -> 0.0
   otherwise -> 0.0
+
+-- | /unpackBoolean x/ unwraps a boolean. Any number greater than 0 is true. Anything else is true.
+unpackBoolean :: YodaVal -> Bool
+unpackBoolean  x = case x of
+  Boolean v   -> v
+  Number 0    -> False
+  Number _    -> True
+  Decimal 0.0 -> False
+  Decimal _   -> True
+  otherwise   -> True
+
+unpackFunc :: YodaVal -> [YodaVal]
+unpackFunc x = case x of
+  Func v    -> v
+  otherwise -> [x]
 
 -- | Returns a function body, otherwise throws an error
 getBody :: YodaVal -> [YodaVal]
@@ -62,9 +85,11 @@ getBody (Func b) = b
 
 -- | Formats a Yoda value.
 showVal :: YodaVal -> String
-showVal (Number v) = replace "-" "_" (show v)
-showVal (Id v) = v
-showVal (Func b) = "[ " ++ intercalate " " (map showVal b) ++ " ]"
-showVal (Str v) = show v
-showVal (Decimal v) = replace "-" "_" (show v)
-showVal (Error e) = "ERROR: " ++ e
+showVal (Number v)      = replace "-" "_" (show v)
+showVal (Id v)          = v
+showVal (Func b)        = "[ " ++ intercalate " " (map showVal b) ++ " ]"
+showVal (Str v)         = show v
+showVal (Decimal v)     = replace "-" "_" (show v)
+showVal (Error e)       = "ERROR: " ++ e
+showVal (Boolean True)  = "t"
+showVal (Boolean False) = "f"

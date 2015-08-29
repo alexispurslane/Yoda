@@ -1,4 +1,3 @@
-
 {-|
 Module      : Parser
 Description : A Parsec parser that controls how Yoda is parsed and turned into an AST.
@@ -32,12 +31,16 @@ symbol :: Parser Char
 symbol = oneOf "!#$%&|*+/:<=>?@^_~{}()\\'-"
 
 -- | Matches a Yoda identifier: The first character is a letter or a symbol,
--- the rest of the characters are either a letter, a digit, or a symbol.
+-- the rest of the characters are either a letter, a digit, or a symbol. If the identifier is "t" then returns Boolean True, if it is "f", returns Boolean False.
 parseId :: Parser YodaVal
 parseId = do
   first <- letter <|> symbol
   rest <- many (letter <|> digit <|> symbol)
-  return $ Id (first:rest)
+
+  case Id $ first:rest of
+    Id "t" -> return $ Boolean True
+    Id "f" -> return $ Boolean False
+    v@_    -> return $ v
 
 -- | Parsers a integer or a floating point number. Minor oddity: A negitive sign is an underscore in Yoda:
 -- _1 is a negative number.

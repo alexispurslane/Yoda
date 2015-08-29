@@ -29,7 +29,17 @@ defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
                            ("*", (numericBinop (*), 2)),
                            ("/", (numericBinop div, 2)),
                            ("^", (numericBinop (^), 2)),
-                           ("%", (numericBinop mod, 2))]
+                           ("%", (numericBinop mod, 2)),
+                           ("=", (yvalEqual, 2))]
+
+-- | The equality function for Yoda.
+yvalEqual :: [YodaVal] -> YodaVal
+yvalEqual [Number x, y]  = Boolean $ x == unpackNumber y
+yvalEqual [Str x, y]     = Boolean $ x == unpackString y
+yvalEqual [Decimal x, y] = Boolean $ x == unpackDecimal y
+yvalEqual [Error x, y]   = Boolean $ x == unpackString y
+yvalEqual [Boolean x, y] = Boolean $ x == unpackBoolean y
+yvalEqual [Func x, y]    = Boolean $ all (unpackBoolean . yvalEqual) [[x, y] | (x,y) <- (zip x (unpackFunc y))]
 
 -- | Converts a Haskell function to a Yoda-executable function.
 numericBinop :: (Int -> Int -> Int) -> [YodaVal] -> YodaVal
@@ -53,6 +63,7 @@ evalExpr env e s = case e of
   v@(Str _)     -> (s ++ [v], env)
   v@(Decimal _) -> (s ++ [v], env)
   v@(Func _)    -> (s ++ [v], env)
+  v@(Boolean _) -> (s ++ [v], env)
   Id "clear"    -> ([], Map.empty)
   Id "def"      -> let [i, q, n] = take 3 (reverse s)
                    in (reverse . drop 3 $ reverse s,
