@@ -30,7 +30,8 @@ defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
                            ("/", (numericBinop div, 2)),
                            ("^", (numericBinop (^), 2)),
                            ("%", (numericBinop mod, 2)),
-                           ("=", (yvalEqual, 2))]
+                           ("=", (yvalEqual, 2)),
+                           ("not", (yvalNot, 1))]
 
 -- | The equality function for Yoda.
 yvalEqual :: [YodaVal] -> YodaVal
@@ -40,6 +41,10 @@ yvalEqual [Decimal x, y] = Boolean $ x == unpackDecimal y
 yvalEqual [Error x, y]   = Boolean $ x == unpackString y
 yvalEqual [Boolean x, y] = Boolean $ x == unpackBoolean y
 yvalEqual [Func x, y]    = Boolean $ all (unpackBoolean . yvalEqual) [[x, y] | (x,y) <- (zip x (unpackFunc y))]
+
+-- | Negates a boolean.
+yvalNot :: [YodaVal] -> YodaVal
+yvalNot [x] = Boolean . not $ unpackBoolean x
 
 -- | Converts a Haskell function to a Yoda-executable function.
 numericBinop :: (Int -> Int -> Int) -> [YodaVal] -> YodaVal
@@ -64,14 +69,14 @@ evalExpr env e s = case e of
   v@(Decimal _) -> (s ++ [v], env)
   v@(Func _)    -> (s ++ [v], env)
   v@(Boolean _) -> (s ++ [v], env)
-  Id "clear"    -> ([], Map.empty)
+  Id "clear"    -> ([], env)
   Id "def"      -> let [i, q, n] = take 3 (reverse s)
                    in (reverse . drop 3 $ reverse s,
                        Map.insert (unpackString n) (languageFunc q env, unpackNumber i) env)
   Id "call"     -> run (unpackFunc (last s)) (init s) env
   Id v          -> (case Map.lookup v env of
                      Just res -> execute s v res
-                     Nothing  -> [Error "Undefined function or name."], env)
+                     Nothing  -> [Error $ "Undefined function " ++ v], env)
   otherwise     -> ([Error "Unknown form or expression."], env)
 
 -- | Evaluates multiple Yoda expressions.

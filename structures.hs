@@ -84,7 +84,7 @@ unpackFunc x = case x of
 showVal :: YodaVal -> String
 showVal (Number v)      = replace "-" "_" (show v)
 showVal (Id v)          = v
-showVal (Func b)        = "[ " ++ intercalate " " (map showVal b) ++ " ]"
+showVal (Func b)        = "[ " ++ unwords (map showVal b) ++ " ]"
 showVal (Str v)         = show v
 showVal (Decimal v)     = replace "-" "_" (show v)
 showVal (Error e)       = "ERROR: " ++ e
