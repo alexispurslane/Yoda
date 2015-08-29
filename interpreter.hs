@@ -59,7 +59,7 @@ execute s i f = case f of
 
 -- | Converts a Yoda lambda to a function that can be named and added to the 'defaultEnv'.
 languageFunc :: YodaVal -> Env -> [YodaVal] -> YodaVal
-languageFunc f e a = last (fst (run (unpackFunc f) a e))
+languageFunc f e a = last . fst $ run (unpackFunc f) a e
 
 -- | Evaluates a single Yoda expression, with the environment and the stack.
 evalExpr :: Env -> YodaVal -> [YodaVal] -> ([YodaVal], Env)
@@ -69,6 +69,11 @@ evalExpr env e s = case e of
   v@(Decimal _) -> (s ++ [v], env)
   v@(Func _)    -> (s ++ [v], env)
   v@(Boolean _) -> (s ++ [v], env)
+  Id "swap"     -> (take (length s - 2) s ++ reverse (drop (length s - 2) s), env)
+  Id "rot"      -> (rotate 1 s, env)
+  Id "flip"     -> (reverse s, env)
+  Id "drop"     -> (init s, env)
+  Id "dup"      -> (s ++ [last s], env)
   Id "clear"    -> ([], env)
   Id "def"      -> let [i, q, n] = take 3 (reverse s)
                    in (reverse . drop 3 $ reverse s,
@@ -78,6 +83,8 @@ evalExpr env e s = case e of
                      Just res -> execute s v res
                      Nothing  -> [Error $ "Undefined function " ++ v], env)
   otherwise     -> ([Error "Unknown form or expression."], env)
+  where
+    rotate n xs = take (length xs) (drop n (cycle xs))
 
 -- | Evaluates multiple Yoda expressions.
 run :: [YodaVal] -> [YodaVal] -> Env -> ([YodaVal], Env)
