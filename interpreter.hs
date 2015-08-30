@@ -38,7 +38,9 @@ defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
                            ("!=", (yvalNot . return . yvalEqual, 2)),
                            ("&&", (\[x, y] -> Boolean $ unpackBoolean x && unpackBoolean y, 2)),
                            ("||", (\[x, y] -> Boolean $ unpackBoolean x || unpackBoolean y, 2)),
-                           ("not", (yvalNot, 1))]
+                           ("not", (yvalNot, 1)),
+                           ("first", (\[lst] -> head $ unpackList lst, 1)),
+                           ("rest", (\[lst] -> List . tail $ unpackList lst, 1))]
 
 -- | The equality function for Yoda.
 yvalEqual :: [YodaVal] -> YodaVal

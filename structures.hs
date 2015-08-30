@@ -86,6 +86,12 @@ unpackFunc x = case x of
   List v    -> v
   otherwise -> [x]
 
+unpackList :: YodaVal -> [YodaVal]
+unpackList x = case x of
+  Func v    -> v
+  List v    -> v
+  otherwise -> [x]
+
 -- | Formats a Yoda value.
 showVal :: YodaVal -> String
 showVal (Number v)      = replace "-" "_" (show v)
