@@ -94,7 +94,8 @@ evalExpr env e s = case e of
                    in let pr = unpackBoolean . head . fst $ run (unpackFunc p) (reverse . drop 3 $ reverse s) env
                       in if traceShow pr pr
                          then run (unpackFunc t) (reverse . drop 3 $ reverse s) env 
-                         else run (unpackFunc o) (reverse . drop 3 $ reverse s) env 
+                         else run (unpackFunc o) (reverse . drop 3 $ reverse s) env
+  Id "array"    -> ([List s], env)
   Id v          -> (case Map.lookup v env of
                      Just res -> execute s v res
                      Nothing  -> [Error $ "Undefined function " ++ v], env)

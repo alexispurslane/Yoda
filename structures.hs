@@ -30,6 +30,8 @@ data YodaVal = Number Int
                -- ^ An error type, for error correction in Yoda.
              | Boolean Bool
                -- ^ A boolean type.
+             | List [YodaVal]
+               -- ^ A Yoda list.
 
 -- | Implements a show function for YodaVal
 instance Show YodaVal where
