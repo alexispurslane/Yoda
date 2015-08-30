@@ -87,6 +87,7 @@ showVal :: YodaVal -> String
 showVal (Number v)      = replace "-" "_" (show v)
 showVal (Id v)          = v
 showVal (Func b)        = "[ " ++ unwords (map showVal b) ++ " ]"
+showVal (List b)        = unwords (map showVal b)
 showVal (Str v)         = show v
 showVal (Decimal v)     = replace "-" "_" (show v)
 showVal (Error e)       = "ERROR: " ++ e
