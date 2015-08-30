@@ -30,6 +30,8 @@ data YodaVal = Number Int
                -- ^ An error type, for error correction in Yoda.
              | Boolean Bool
                -- ^ A boolean type.
+             | List [YodaVal]
+               -- ^ A Yoda list.
 
 -- | Implements a show function for YodaVal
 instance Show YodaVal where
@@ -42,6 +44,7 @@ unpackNumber x = case x of
   Boolean True  -> 1
   Boolean False -> 0
   Str v         -> read v
+  List v        -> unpackNumber $ last v
   otherwise -> 0
 
 -- | /unpackString x/ changes x into a string if it is not, using show. Otherwise if it is a Str, Error, Boolean, or Id, returns the value.
@@ -53,6 +56,7 @@ unpackString x = case x of
   Decimal v -> show v
   Id v      -> v
   Boolean v -> show v
+  List v    -> show v
   otherwise -> ""
 
 -- | /unpackDecimal x/ makes a Number into a Float, or just returns the unwrapped value of a Decimal. If x is a Boolean, it returns 1.0 for true, and 0.0 for false. If x is neither a Decimal, a Number or a Boolean, it returns 0.0.
@@ -62,6 +66,7 @@ unpackDecimal x = case x of
   Number v      -> fromIntegral v
   Boolean True  -> 1.0
   Boolean False -> 0.0
+  List v        -> unpackDecimal $ last v
   otherwise -> 0.0
 
 -- | /unpackBoolean x/ unwraps a boolean. Any number greater than 0 is true. Anything else is true.
@@ -78,6 +83,13 @@ unpackBoolean  x = case x of
 unpackFunc :: YodaVal -> [YodaVal]
 unpackFunc x = case x of
   Func v    -> v
+  List v    -> v
+  otherwise -> [x]
+
+unpackList :: YodaVal -> [YodaVal]
+unpackList x = case x of
+  Func v    -> v
+  List v    -> v
   otherwise -> [x]
 
 -- | Formats a Yoda value.
@@ -85,6 +97,7 @@ showVal :: YodaVal -> String
 showVal (Number v)      = replace "-" "_" (show v)
 showVal (Id v)          = v
 showVal (Func b)        = "[ " ++ unwords (map showVal b) ++ " ]"
+showVal (List b)        = unwords (map showVal b)
 showVal (Str v)         = show v
 showVal (Decimal v)     = replace "-" "_" (show v)
 showVal (Error e)       = "ERROR: " ++ e

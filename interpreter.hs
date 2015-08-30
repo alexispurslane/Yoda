@@ -38,7 +38,9 @@ defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
                            ("!=", (yvalNot . return . yvalEqual, 2)),
                            ("&&", (\[x, y] -> Boolean $ unpackBoolean x && unpackBoolean y, 2)),
                            ("||", (\[x, y] -> Boolean $ unpackBoolean x || unpackBoolean y, 2)),
-                           ("not", (yvalNot, 1))]
+                           ("not", (yvalNot, 1)),
+                           ("first", (\[lst] -> head $ unpackList lst, 1)),
+                           ("rest", (\[lst] -> List . tail $ unpackList lst, 1))]
 
 -- | The equality function for Yoda.
 yvalEqual :: [YodaVal] -> YodaVal
@@ -94,7 +96,8 @@ evalExpr env e s = case e of
                    in let pr = unpackBoolean . head . fst $ run (unpackFunc p) (reverse . drop 3 $ reverse s) env
                       in if traceShow pr pr
                          then run (unpackFunc t) (reverse . drop 3 $ reverse s) env 
-                         else run (unpackFunc o) (reverse . drop 3 $ reverse s) env 
+                         else run (unpackFunc o) (reverse . drop 3 $ reverse s) env
+  Id "array"    -> ([List s], env)
   Id v          -> (case Map.lookup v env of
                      Just res -> execute s v res
                      Nothing  -> [Error $ "Undefined function " ++ v], env)
