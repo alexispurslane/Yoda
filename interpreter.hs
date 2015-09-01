@@ -35,6 +35,7 @@ defaultEnv = Env $ Map.fromList [("+", (numericBinop (+), 2)),
                                  ("<=", (numericBoolBinop (<=), 2)),
                                  (">=", (numericBoolBinop (>=), 2)),
                                  ("=", (yvalEqual, 2)),
+                                 ("loop", (yvalLoop, 2)),
                                  ("!=", (\s e [x, y] -> yvalNot s e [yvalEqual s e [x, y]], 2)),
                                  ("&&", (\_ _ [x, y] -> Boolean $ unpackBoolean x && unpackBoolean y, 2)),
                                  ("||", (\_ _ [x, y] -> Boolean $ unpackBoolean x || unpackBoolean y, 2)),
@@ -44,12 +45,19 @@ defaultEnv = Env $ Map.fromList [("+", (numericBinop (+), 2)),
 
 -- | The equality function for Yoda.
 yvalEqual :: [YodaVal] -> Env -> [YodaVal] -> YodaVal
-yvalEqual s e [Number x, y]  = Boolean $ x == unpackNumber y
-yvalEqual s e [Str x, y]     = Boolean $ x == unpackString y
-yvalEqual s e [Decimal x, y] = Boolean $ x == unpackDecimal y
-yvalEqual s e [Error x, y]   = Boolean $ x == unpackString y
-yvalEqual s e [Boolean x, y] = Boolean $ x == unpackBoolean y
+yvalEqual _ _ [Number x, y]  = Boolean $ x == unpackNumber y
+yvalEqual _ _ [Str x, y]     = Boolean $ x == unpackString y
+yvalEqual _ _ [Decimal x, y] = Boolean $ x == unpackDecimal y
+yvalEqual _ _ [Error x, y]   = Boolean $ x == unpackString y
+yvalEqual _ _ [Boolean x, y] = Boolean $ x == unpackBoolean y
 yvalEqual s e [Func x, y]    = Boolean $ all (unpackBoolean . yvalEqual s e) [[x, y] | (x,y) <- (zip x (unpackFunc y))]
+
+-- | A while loop-like construct.
+yvalLoop :: [YodaVal] -> Env -> [YodaVal] -> YodaVal
+yvalLoop s e [pred, body] = loop s e pred body []
+                            where loop stack env pred body acc = if unpackBoolean . head . fst $ run (unpackFunc pred) stack env
+                                                                 then loop stack env pred body (acc ++ [head . fst $ run (unpackFunc body) stack env])
+                                                                 else List acc
 
 -- | Negates a boolean.
 yvalNot :: [YodaVal] -> Env -> [YodaVal] -> YodaVal
@@ -108,7 +116,7 @@ evalExpr env e s = case e of
 -- | Evaluates multiple Yoda expressions.
 run :: [YodaVal] -> [YodaVal] -> Env -> ([YodaVal], Env)
 run [] s e = (s, e)
-run exps stack env = let r = evalExpr env (head exps) stack
+run exps stack env = let r = evalExpr env (head exps) (traceShow exps stack)
                      in case r of
                        ([Error v], e) -> ([Error v], e)
                        (s, e) -> run (tail exps) s e
