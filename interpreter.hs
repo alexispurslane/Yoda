@@ -20,59 +20,59 @@ import Data.Either
 import Debug.Trace
 
 -- | A type alias for a Haskell Map. The keys are strings, the value is a tuple containing the function, and its arity.
-type Env = Map.Map String ([YodaVal] -> YodaVal, Int)
+newtype Env = Env { getEnv :: Map.Map String ([YodaVal] -> Env -> [YodaVal] -> YodaVal, Int) }
 
 -- | Yoda built-in functions, or standard library.
 defaultEnv :: Env
-defaultEnv = Map.fromList [("+", (numericBinop (+), 2)),
-                           ("-", (numericBinop (-), 2)),
-                           ("*", (numericBinop (*), 2)),
-                           ("/", (numericBinop div, 2)),
-                           ("^", (numericBinop (^), 2)),
-                           ("%", (numericBinop mod, 2)),
-                           ("<", (numericBoolBinop (<), 2)),
-                           (">", (numericBoolBinop (>), 2)),
-                           ("<=", (numericBoolBinop (<=), 2)),
-                           (">=", (numericBoolBinop (>=), 2)),
-                           ("=", (yvalEqual, 2)),
-                           ("!=", (yvalNot . return . yvalEqual, 2)),
-                           ("&&", (\[x, y] -> Boolean $ unpackBoolean x && unpackBoolean y, 2)),
-                           ("||", (\[x, y] -> Boolean $ unpackBoolean x || unpackBoolean y, 2)),
-                           ("not", (yvalNot, 1)),
-                           ("first", (\[lst] -> head $ unpackList lst, 1)),
-                           ("rest", (\[lst] -> List . tail $ unpackList lst, 1))]
+defaultEnv = Env $ Map.fromList [("+", (numericBinop (+), 2)),
+                                 ("-", (numericBinop (-), 2)),
+                                 ("*", (numericBinop (*), 2)),
+                                 ("/", (numericBinop div, 2)),
+                                 ("^", (numericBinop (^), 2)),
+                                 ("%", (numericBinop mod, 2)),
+                                 ("<", (numericBoolBinop (<), 2)),
+                                 (">", (numericBoolBinop (>), 2)),
+                                 ("<=", (numericBoolBinop (<=), 2)),
+                                 (">=", (numericBoolBinop (>=), 2)),
+                                 ("=", (yvalEqual, 2)),
+                                 ("!=", (\s e [x, y] -> yvalNot s e [yvalEqual s e [x, y]], 2)),
+                                 ("&&", (\_ _ [x, y] -> Boolean $ unpackBoolean x && unpackBoolean y, 2)),
+                                 ("||", (\_ _ [x, y] -> Boolean $ unpackBoolean x || unpackBoolean y, 2)),
+                                 ("not", (yvalNot, 1)),
+                                 ("first", (\_ _ [lst] -> head $ unpackList lst, 1)),
+                                 ("rest", (\_ _ [lst] -> List . tail $ unpackList lst, 1))]
 
 -- | The equality function for Yoda.
-yvalEqual :: [YodaVal] -> YodaVal
-yvalEqual [Number x, y]  = Boolean $ x == unpackNumber y
-yvalEqual [Str x, y]     = Boolean $ x == unpackString y
-yvalEqual [Decimal x, y] = Boolean $ x == unpackDecimal y
-yvalEqual [Error x, y]   = Boolean $ x == unpackString y
-yvalEqual [Boolean x, y] = Boolean $ x == unpackBoolean y
-yvalEqual [Func x, y]    = Boolean $ all (unpackBoolean . yvalEqual) [[x, y] | (x,y) <- (zip x (unpackFunc y))]
+yvalEqual :: [YodaVal] -> Env -> [YodaVal] -> YodaVal
+yvalEqual s e [Number x, y]  = Boolean $ x == unpackNumber y
+yvalEqual s e [Str x, y]     = Boolean $ x == unpackString y
+yvalEqual s e [Decimal x, y] = Boolean $ x == unpackDecimal y
+yvalEqual s e [Error x, y]   = Boolean $ x == unpackString y
+yvalEqual s e [Boolean x, y] = Boolean $ x == unpackBoolean y
+yvalEqual s e [Func x, y]    = Boolean $ all (unpackBoolean . yvalEqual s e) [[x, y] | (x,y) <- (zip x (unpackFunc y))]
 
 -- | Negates a boolean.
-yvalNot :: [YodaVal] -> YodaVal
-yvalNot [x] = Boolean . not $ unpackBoolean x
+yvalNot :: [YodaVal] -> Env -> [YodaVal] -> YodaVal
+yvalNot _ _ [x] = Boolean . not $ unpackBoolean x
 
 -- | Converts a Haskell function to a Yoda-executable function.
-numericBinop :: (Int -> Int -> Int) -> [YodaVal] -> YodaVal
-numericBinop op args = Number (unpackNumber (head args) `op` unpackNumber (head $ tail args))
+numericBinop :: (Int -> Int -> Int) -> [YodaVal] -> Env -> [YodaVal] -> YodaVal
+numericBinop op s e args = Number (unpackNumber (head args) `op` unpackNumber (head $ tail args))
 
 -- | Converts a Haskell function to a Yoda-executable function.
-numericBoolBinop :: (Int -> Int -> Bool) -> [YodaVal] -> YodaVal
-numericBoolBinop op args = Boolean (unpackNumber (head args) `op` unpackNumber (head $ tail args))
+numericBoolBinop :: (Int -> Int -> Bool) -> [YodaVal] -> Env -> [YodaVal] -> YodaVal
+numericBoolBinop op s e args = Boolean (unpackNumber (head args) `op` unpackNumber (head $ tail args))
 
 -- | Executes a function
-execute :: [YodaVal] -> String -> ([YodaVal] -> YodaVal, Int) -> [YodaVal]
-execute s i f = case f of
+execute :: [YodaVal] -> Env -> String -> ([YodaVal] -> Env -> [YodaVal] -> YodaVal, Int) -> [YodaVal]
+execute s e i f = case f of
   (fn, n)   -> if length s >= n
-                  then (reverse . drop n $ reverse s) ++ [(fn . reverse) . take n $ reverse s]
+                  then (reverse . drop n $ reverse s) ++ [(fn s e . reverse) . take n $ reverse s]
                   else [Error "Data stack underflow."]
 
 -- | Converts a Yoda lambda to a function that can be named and added to the 'defaultEnv'.
-languageFunc :: YodaVal -> Env -> [YodaVal] -> YodaVal
-languageFunc f e a = last . fst $ run (unpackFunc f) a e
+languageFunc :: YodaVal -> [YodaVal] -> Env -> [YodaVal] -> YodaVal
+languageFunc f s e a = last . fst $ run (unpackFunc f) a e
 
 -- | Evaluates a single Yoda expression, with the environment and the stack.
 evalExpr :: Env -> YodaVal -> [YodaVal] -> ([YodaVal], Env)
@@ -90,16 +90,16 @@ evalExpr env e s = case e of
   Id "clear"    -> ([], env)
   Id "def"      -> let [i, q, n] = take 3 (reverse s)
                    in (reverse . drop 3 $ reverse s,
-                       Map.insert (unpackString n) (languageFunc q env, unpackNumber i) env)
+                       Env (Map.insert (unpackString n) (languageFunc q, unpackNumber i) (getEnv env)))
   Id "call"     -> run (unpackFunc (last s)) (init s) env
   Id "if"       -> let [o, t, p] = take 3 (reverse s)
                    in let pr = unpackBoolean . head . fst $ run (unpackFunc p) (reverse . drop 3 $ reverse s) env
-                      in if traceShow pr pr
+                      in if pr
                          then run (unpackFunc t) (reverse . drop 3 $ reverse s) env 
                          else run (unpackFunc o) (reverse . drop 3 $ reverse s) env
   Id "array"    -> ([List s], env)
-  Id v          -> (case Map.lookup v env of
-                     Just res -> execute s v res
+  Id v          -> (case Map.lookup v (getEnv env) of
+                     Just res -> execute s env v res
                      Nothing  -> [Error $ "Undefined function " ++ v], env)
   otherwise     -> ([Error "Unknown form or expression."], env)
   where
